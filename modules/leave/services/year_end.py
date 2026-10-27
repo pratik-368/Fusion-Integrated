@@ -32,10 +32,17 @@ from modules.leave.selectors import leave as sel
 log = logging.getLogger("fusion.leave.year_end")
 
 
+def _policy_for(leave_year: int) -> LeavePolicy | None:
+    """The policy for this year, falling back to whichever one is current."""
+    policy = LeavePolicy.objects.filter(leave_year=leave_year).first()
+    if policy is not None:
+        return policy
+    return LeavePolicy.objects.filter(is_current=True).first()
+
+
 def boundary_for(leave_year: int) -> tuple[int, int]:
     """The configured year-end month and day (BR-EL-038's sibling, EVT-01)."""
-    policy = LeavePolicy.objects.filter(leave_year=leave_year).first() \
-        or LeavePolicy.objects.filter(is_current=True).first()
+    policy = _policy_for(leave_year)
     if policy is None:
         return (12, 31)
     return (policy.year_end_month, policy.year_end_day)
@@ -51,9 +58,13 @@ def run(*, leave_year: int) -> YearEndRun:
             code="year_end_already_run",
             details=[{"run_id": existing.pk, "status": existing.status}])
 
-    policy = LeavePolicy.objects.filter(leave_year=leave_year).first() \
-        or LeavePolicy.objects.filter(is_current=True).first()
+    policy = _policy_for(leave_year)
     ratio = policy.vl_to_el_ratio if policy else cat.VL_TO_EL_RATIO
+    # Every carried-forward account lands in the same next year, so that year's
+    # policy is resolved once for the whole run instead of per account.
+    next_year = leave_year + 1
+    next_policy = sel.current_policy(next_year)
+    next_entitlements = next_policy.entitlements if next_policy else None
     run_row = YearEndRun.objects.create(leave_year=leave_year, status="running")
 
     processed = 0
@@ -61,7 +72,8 @@ def run(*, leave_year: int) -> YearEndRun:
                 .order_by("user_id", "category"))
     for account in accounts:
         try:
-            _apply(run=run_row, account=account, ratio=ratio)
+            _apply(run=run_row, account=account, ratio=ratio,
+                   entitlements=next_entitlements)
         except Exception as exc:                      # noqa: BLE001 — report it
             YearEndException.objects.create(
                 run=run_row, user_id=account.user_id, category=account.category,
@@ -84,8 +96,13 @@ def run(*, leave_year: int) -> YearEndRun:
     return run_row
 
 
-def _apply(*, run: YearEndRun, account: LeaveBalance, ratio: Decimal) -> None:
-    """One account: lapse, carry forward or convert, then record it."""
+def _apply(*, run: YearEndRun, account: LeaveBalance, ratio: Decimal,
+           entitlements: dict | None) -> None:
+    """One account: lapse, carry forward or convert, then record it.
+
+    `entitlements` are the *next* year's, resolved once by `run` for the whole
+    sweep.
+    """
     outcome = rules.outcome_for(account.category, account.available_days,
                                 vl_to_el_ratio=ratio)
     if outcome.is_noop:
@@ -110,7 +127,8 @@ def _apply(*, run: YearEndRun, account: LeaveBalance, ratio: Decimal) -> None:
                                     "updated_at"])
         _record(account=account, entry_type="carry_forward", days=carried,
                 note=f"Unused {account.category.upper()} carried forward")
-        _open_next_year(account=account, opening=carried)
+        _open_next_year(account=account, opening=carried,
+                        entitlements=entitlements)
 
 
     elif outcome.action == rules.CONVERT:
@@ -123,7 +141,8 @@ def _apply(*, run: YearEndRun, account: LeaveBalance, ratio: Decimal) -> None:
                                     "lapsed_days", "updated_at"])
         _record(account=account, entry_type="convert", days=outcome.days_in,
                 note=f"Converted {outcome.days_in} VL to {outcome.days_out} EL")
-        _open_next_year(account=account, opening=Decimal("0"))
+        _open_next_year(account=account, opening=Decimal("0"),
+                        entitlements=entitlements)
         target = (LeaveBalance.objects
                   .select_for_update()
                   .filter(user_id=account.user_id, category=cat.EL,
@@ -150,7 +169,8 @@ def _record(*, account: LeaveBalance, entry_type: str, days: Decimal,
         note=note[:300])
 
 
-def _open_next_year(*, account: LeaveBalance, opening: Decimal) -> LeaveBalance:
+def _open_next_year(*, account: LeaveBalance, opening: Decimal,
+                    entitlements: dict | None) -> LeaveBalance:
     """Create the next year's account so a carry-forward has somewhere to land.
 
     The year-end run is unique per leave year, so this adds the opening balance
@@ -158,10 +178,9 @@ def _open_next_year(*, account: LeaveBalance, opening: Decimal) -> LeaveBalance:
     (by an approved request) must not lose the carry-forward.
     """
     next_year = account.leave_year + 1
-    policy = sel.current_policy(next_year)
     entitlement = Decimal("0")
-    if policy:
-        entitlement = Decimal(str(policy.entitlements.get(account.category, 0)))
+    if entitlements:
+        entitlement = Decimal(str(entitlements.get(account.category, 0)))
     row, _created = LeaveBalance.objects.get_or_create(
         user_id=account.user_id, category=account.category, leave_year=next_year,
         defaults={"entitled_days": entitlement})

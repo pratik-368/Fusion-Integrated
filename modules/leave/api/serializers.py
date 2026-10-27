@@ -12,6 +12,7 @@ from rest_framework import serializers
 from modules.leave.domain import categories as cat
 from modules.leave.domain import state_machine as sm
 from modules.leave.models import (
+    REQUEST_STATUSES,
     HolidayCalendar,
     HolidayEntry,
     LeaveBalance,
@@ -58,7 +59,7 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
         return cat.LABELS.get(obj.category, obj.category)
 
     def get_status_label(self, obj) -> str:
-        return _label(LeaveRequest.REQUEST_STATUSES, obj.status)
+        return _label(REQUEST_STATUSES, obj.status)
 
     def get_kind_label(self, obj) -> str:
         return _label(LeaveRequest.KINDS, obj.kind)
@@ -217,7 +218,7 @@ class ApplyLeaveSerializer(ValidateLeaveSerializer):
     substitute_user_id = serializers.IntegerField(required=False, allow_null=True)
 
 
-class WithdrawSerializer(serializers.Serializer):
+class LeaveWithdrawSerializer(serializers.Serializer):
     reason = serializers.CharField(max_length=300, required=False, allow_blank=True)
 
 

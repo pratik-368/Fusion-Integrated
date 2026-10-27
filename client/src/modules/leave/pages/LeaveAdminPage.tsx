@@ -1,134 +1,176 @@
 import { useState } from "react";
-import { Button, Card, Container, Group, Stack, Tabs, Text } from "@mantine/core";
-import { FaClipboardList, FaFileSignature, FaHistory } from "react-icons/fa";
+import { Badge, Card, Container, Group, Stack, Tabs, Text } from "@mantine/core";
+import {
+  FaCalendarAlt, FaClipboardList, FaCog, FaExchangeAlt, FaHistory,
+} from "react-icons/fa";
 
 import { DataTable } from "../../../ui/components/DataTable";
 import { ErrorState } from "../../../ui/components/ErrorState";
 import { PageHeader } from "../../../ui/components/PageHeader";
-import { useLeaveConfig, useLeaveHierarchy, useLeaveSla } from "../api/hooks";
+import {
+  useCalendars, useHierarchy, usePolicy, useSlaThresholds,
+} from "../api/hooks";
+import type {
+  HierarchyRule, HolidayCalendar, LeavePolicy, SlaThreshold,
+} from "../api/types";
+
+type Tab = "policy" | "hierarchy" | "calendar" | "sla";
+
+function PolicyTable() {
+  const { data, isPending } = usePolicy();
+  return (
+    <DataTable<LeavePolicy>
+      rows={data?.results ?? []}
+      loading={isPending}
+      rowKey={(r) => r.id}
+      minWidth={700}
+      columns={[
+        { key: "year", header: "Leave year", render: (r) => r.leave_year },
+        { key: "label", header: "Label", render: (r) => r.label },
+        { key: "current", header: "In force",
+          render: (r) => (r.is_current ? "Yes" : "No") },
+        { key: "entitlements", header: "Entitlements",
+          render: (r) => Object.entries(r.entitlements)
+            .map(([category, days]) => `${category} ${days}`).join(" · ") },
+        { key: "year_end", header: "Year end",
+          render: (r) => `${r.year_end_day}/${r.year_end_month}` },
+      ]}
+      empty={{
+        icon: FaCog, title: "No policy configured",
+        description: "The current policy appears here once an administrator saves one.",
+      }}
+    />
+  );
+}
+
+function HierarchyTable() {
+  const { data, isPending } = useHierarchy();
+  return (
+    <DataTable<HierarchyRule>
+      rows={data?.results ?? []}
+      loading={isPending}
+      rowKey={(r) => `${r.category}-${r.step_order}`}
+      minWidth={800}
+      columns={[
+        { key: "category", header: "Category",
+          render: (r) => r.category || "Any" },
+        { key: "order", header: "Step", render: (r) => r.step_order },
+        { key: "kind", header: "Kind",
+          render: (r) => <Badge variant="light">{r.step_kind}</Badge> },
+        { key: "authority", header: "Authority",
+          render: (r) => r.authority || "—" },
+        { key: "label", header: "Label", render: (r) => r.label || "—" },
+      ]}
+      empty={{
+        icon: FaHistory, title: "No hierarchy configured",
+        description: "Every request falls back to the Unit Head and Registrar.",
+      }}
+    />
+  );
+}
+
+function CalendarTable() {
+  const { data, isPending } = useCalendars();
+  return (
+    <DataTable<HolidayCalendar>
+      rows={data?.results ?? []}
+      loading={isPending}
+      rowKey={(r) => r.id}
+      minWidth={700}
+      columns={[
+        { key: "year", header: "Leave year", render: (r) => r.leave_year },
+        { key: "label", header: "Label", render: (r) => r.label },
+        { key: "published", header: "Published",
+          render: (r) => (r.published_at ? "Yes" : "No") },
+        { key: "effective", header: "Governing",
+          render: (r) => (r.is_effective ? "Yes" : "No") },
+        { key: "entries", header: "Entries", render: (r) => r.entries.length },
+      ]}
+      empty={{
+        icon: FaCalendarAlt, title: "No holiday calendar",
+        description: "A published calendar is what a Restricted Holiday is checked against.",
+      }}
+    />
+  );
+}
+
+function SlaTable() {
+  const { data, isPending } = useSlaThresholds();
+  return (
+    <DataTable<SlaThreshold>
+      rows={data?.results ?? []}
+      loading={isPending}
+      rowKey={(r) => r.id}
+      minWidth={720}
+      columns={[
+        { key: "task", header: "Task class", render: (r) => r.task_class },
+        { key: "reminder", header: "Remind after",
+          render: (r) => `${r.reminder_hours}h` },
+        { key: "escalation", header: "Escalate after",
+          render: (r) => `${r.escalation_hours}h` },
+        { key: "action", header: "Escalation",
+          render: (r) => r.escalation_action },
+        { key: "role", header: "Reassign to",
+          render: (r) => r.escalate_to_role || "—" },
+      ]}
+      empty={{
+        icon: FaExchangeAlt, title: "No SLA thresholds",
+        description: "Tasks are reminded and escalated once a threshold is configured.",
+      }}
+    />
+  );
+}
 
 export default function LeaveAdminPage() {
-  const config = useLeaveConfig();
-  const hierarchy = useLeaveHierarchy();
-  const sla = useLeaveSla();
-  const [tab, setTab] = useState<"policy" | "hierarchy" | "calendar" | "sla">("policy");
+  const policy = usePolicy();
+  const hierarchy = useHierarchy();
+  const calendars = useCalendars();
+  const sla = useSlaThresholds();
+  const [tab, setTab] = useState<Tab>("policy");
 
-  if (config.error || hierarchy.error || sla.error) {
-    return <Container size="xl"><ErrorState error={
-      config.error ?? hierarchy.error ?? sla.error
-    } /></Container>;
+  const error = policy.error ?? hierarchy.error ?? calendars.error ?? sla.error;
+  if (error) {
+    return <Container size="xl"><ErrorState error={error} /></Container>;
   }
-
-  const tabSection = (tab: "policy" | "hierarchy" | "calendar" | "sla") => {
-    switch (tab) {
-      case "policy": {
-        const c = config.data ?? { periods: [], categories: [] };
-        return <DataTable<{ key: string; label: string; value: string }>
-          rows={[
-            { key: "policy_version", label: "Policy version", value: c.periods.map((p) => p.name).join(", ") },
-            { key: "start_date", label: "Academic year start", value: c.periods.map((p) => p.period_from).join(", ") },
-            { key: "end_date", label: "Academic year end", value: c.periods.map((p) => p.period_to).join(", ") },
-            { key: "categories", label: "Categories", value: c.categories.join(", ") },
-          ]}
-          loading={config.isPending}
-          rowKey={(r) => r.key}
-          minWidth={400}
-          empty={{ icon: FaClipboardList, title: "No configuration yet", description: "Configure the leave module policies here." }}
-          columns={[
-            { key: "label", header: "Setting", render: (r) => <Text fw={600}>{r.label}</Text> },
-            { key: "value", header: "Value", render: (r) => <Text size="sm">{r.value}</Text> },
-          ]}
-        />;
-      }
-      case "hierarchy": {
-        const h = hierarchy.data ?? { departments: [], posts: [], committee: [] };
-        return <DataTable<{ key: string; label: string; value: string }>
-          rows={[
-            { key: "departments", label: "Departments", value: h.departments.map((d) => `${d.code} → ${d.manages_of} managers`).join(", ") },
-            { key: "posting_types", label: "Posting types", value: h.posts.join(", ") },
-            { key: "committee", label: "Leave committee", value: h.committee.join(", ") },
-          ]}
-          loading={hierarchy.isPending}
-          rowKey={(r) => r.key}
-          minWidth={400}
-          empty={{ icon: FaHistory, title: "No hierarchy yet", description: "Configure the leave module hierarchy here." }}
-          columns={[
-            { key: "label", header: "Setting", render: (r) => <Text fw={600}>{r.label}</Text> },
-            { key: "value", header: "Value", render: (r) => <Text size="sm">{r.value}</Text> },
-          ]}
-        />;
-      }
-      case "calendar": {
-        const c = config.data ?? { periods: [] };
-        return <DataTable<{ name: string; from: string; to: string; note: string }>
-          rows={c.periods.map((p) => ({
-            name: p.name, from: p.period_from, to: p.period_to, note: p.note ?? "",
-          }))}
-          loading={config.isPending}
-          rowKey={(r) => r.from}
-          minWidth={500}
-          empty={{ icon: FaClipboardList, title: "No calendar yet", description: "Add academic calendar periods for the leave module." }}
-          columns={[
-            { key: "name", header: "Period", render: (r) => <Text size="sm">{r.name}</Text> },
-            { key: "from", header: "From", render: (r) => r.from },
-            { key: "to", header: "To", render: (r) => r.to },
-            { key: "note", header: "Note", render: (r) => r.note },
-          ]}
-        />;
-      }
-      case "sla": {
-        const s = sla.data ?? { targets: [], remind_before: "", escalate_after: "", breach_days: "", lock_after: "" };
-        return <DataTable<{ key: string; label: string; value: string }>
-          rows={[
-            { key: "targets", label: "Targets", value: s.targets.join(", ") },
-            { key: "remind_before", label: "Remind before", value: s.remind_before },
-            { key: "escalate_after", label: "Escalate after", value: s.escalate_after },
-            { key: "breach_days", label: "Breach days", value: s.breach_days },
-            { key: "lock_after", label: "Lock after", value: s.lock_after },
-          ]}
-          loading={sla.isPending}
-          rowKey={(r) => r.key}
-          minWidth={400}
-          empty={{ icon: FaFileSignature, title: "No SLA thresholds yet", description: "Configure leave request SLA windows here." }}
-          columns={[
-            { key: "label", header: "Setting", render: (r) => <Text fw={600}>{r.label}</Text> },
-            { key: "value", header: "Value", render: (r) => <Text size="sm">{r.value}</Text> },
-          ]}
-        />;
-      }
-    }
-  };
 
   return (
     <Container size="xl">
       <PageHeader
         title="Leave Administration"
-        subtitle="Configure policy, hierarchy, calendar and service levels"
-        action={
-          <Group gap="sm">
-            <Button variant="default" size="xs">Import</Button>
-            <Button variant="light" size="xs" color="gray">Export</Button>
-          </Group>
-        }
+        subtitle="The policy, hierarchy, holiday calendar and service levels currently in force"
+        action={<Badge variant="light">Read-only</Badge>}
       />
 
-      <Group justify="space-between" mb="md">
-        <Stack gap={0}>
-          <Text fw={600}>Configuration</Text>
-          <Text size="sm" c="dimmed">Administer the leave module</Text>
-        </Stack>
-        <Tabs value={tab} onChange={(v) => setTab(v as never)}>
-          <Tabs.List>
-            <Tabs.Tab value="policy" leftSection={<FaFileSignature size={12} />}>Policy</Tabs.Tab>
-            <Tabs.Tab value="hierarchy" leftSection={<FaHistory size={12} />}>Hierarchy</Tabs.Tab>
-            <Tabs.Tab value="calendar" leftSection={<FaClipboardList size={12} />}>Calendar</Tabs.Tab>
-            <Tabs.Tab value="sla" leftSection={<FaFileSignature size={12} />}>SLA</Tabs.Tab>
-          </Tabs.List>
-        </Tabs>
-      </Group>
-
       <Card withBorder padding="lg">
-        {tabSection(tab)}
+        <Group justify="space-between" mb="md">
+          <Stack gap={0}>
+            <Text fw={600}>Configuration</Text>
+            <Text size="sm" c="dimmed">
+              Changes are made through the administration API.
+            </Text>
+          </Stack>
+          <Tabs value={tab} onChange={(v) => setTab(v as Tab)}>
+            <Tabs.List>
+              <Tabs.Tab value="policy" leftSection={<FaClipboardList size={12} />}>
+                Policy
+              </Tabs.Tab>
+              <Tabs.Tab value="hierarchy" leftSection={<FaHistory size={12} />}>
+                Hierarchy
+              </Tabs.Tab>
+              <Tabs.Tab value="calendar" leftSection={<FaCalendarAlt size={12} />}>
+                Calendar
+              </Tabs.Tab>
+              <Tabs.Tab value="sla" leftSection={<FaExchangeAlt size={12} />}>
+                SLA
+              </Tabs.Tab>
+            </Tabs.List>
+          </Tabs>
+        </Group>
+
+        {tab === "policy" && <PolicyTable />}
+        {tab === "hierarchy" && <HierarchyTable />}
+        {tab === "calendar" && <CalendarTable />}
+        {tab === "sla" && <SlaTable />}
       </Card>
     </Container>
   );

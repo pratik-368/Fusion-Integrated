@@ -1,210 +1,181 @@
 import { useState } from "react";
-import { Button, Card, Container, Group, Stack, Text } from "@mantine/core";
-import { FaCalendarAlt, FaClipboardList } from "react-icons/fa";
+import {
+  Button, Card, Container, Group, Modal, Select, Stack, Text, TextInput,
+} from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import { FaClipboardList } from "react-icons/fa";
 
+import { errorMessage } from "../../../lib/http";
 import { DataTable } from "../../../ui/components/DataTable";
 import { ErrorState } from "../../../ui/components/ErrorState";
 import { PageHeader } from "../../../ui/components/PageHeader";
 import { StatusBadge } from "../../../ui/components/StatusBadge";
-import {
-  useLeaveCalendar, useLookups, useRecords, useTryOffline,
-} from "../api/hooks";
-import type { LeaveCalendar, LeaveRecord } from "../api/types";
+import { useLeaveRecords, useRecordOffline } from "../api/hooks";
+import type { LeaveRequest } from "../api/types";
 import { CATEGORY_LABELS } from "../api/types";
 
-// CAL_MONTHS is intentionally unused; the calendar view is driven by the
+const CATEGORY_OPTIONS = Object.entries(CATEGORY_LABELS)
+  .map(([value, label]) => ({ value, label }));
 
-export default function RecordsPage() {
-  const [from, setFrom] = useState("2026-01-01");
-  const [to, setTo] = useState("2026-06-30");
+const STATUS_OPTIONS = [
+  { value: "", label: "Any status" },
+  { value: "draft", label: "Draft" },
+  { value: "approved", label: "Approved" },
+  { value: "extended", label: "Extended" },
+  { value: "rejected", label: "Rejected" },
+  { value: "withdrawn", label: "Withdrawn" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+/** EL-UC-016: leave already sanctioned on paper is recorded, not re-approved. */
+function OfflineRecordModal({ opened, onClose }: {
+  opened: boolean;
+  onClose: () => void;
+}) {
+  const [employeeId, setEmployeeId] = useState("");
   const [category, setCategory] = useState("cl");
-  const [status, setStatus] = useState("active");
-  const [adjustFor, setAdjustFor] = useState<LeaveRecord | null>(null);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [evidence, setEvidence] = useState("");
+  const [certifiedBy, setCertifiedBy] = useState("");
 
-  const records = useRecords(category, status, from, to);
-  const calendar = useLeaveCalendar(from, to);
-  const lookups = useLookups();
-  const offline = useTryOffline();
+  const record = useRecordOffline();
 
-  if (records.error || calendar.error || lookups.error) {
-    return <Container size="xl"><ErrorState error={records.error ?? calendar.error ?? lookups.error} /></Container>;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const adjust = { mutate: (_body: { id: number; adjustment: unknown }) =>
-    Promise.resolve({}) as Promise<{ id: number }>,
-    isPending: false };
-
-  // record is used only to resolve the editing row; the typed payload
-    return (records.data?.results ?? []).find((r) =>
-      r.reference === reference || r.request_id === reference || r.id === Number(reference));
-  }
-
-  function applyEstimate(effort: string, remaining: string, balance: string, days: string) {
-    const pct = Math.min(1, Math.max(0, Number(effort) / 100));
-    const remainingDays = Number(remaining) || 0;
-    if (!Number.isFinite(pct) || !Number.isFinite(remainingDays)) return;
-    const actual = Number(days) || 0;
-    const newActual = Math.round(actual - remainingDays * (1 - pct));
-    const newBalance = Math.max(0, Number(balance) - newActual);
-    adjust.mutate({
-      id: record(reference)?.id ?? 0,
-      adjustment: {
-        label: `Est. ${effort}%`,
-        category,
-        period_from: from,
-        period_to: to,
-        days_taken: newActual.toString(),
+  function submit() {
+    record.mutate({
+      employee_user_id: Number(employeeId),
+      category,
+      period_from: from,
+      period_to: to || from,
+      evidence_reference: evidence,
+      certified_by: certifiedBy,
+    }, {
+      onSuccess: () => {
+        notifications.show({
+          color: "green", title: "Recorded",
+          message: "The offline sanction has been added to the employee's account.",
+        });
+        setEmployeeId("");
+        setFrom("");
+        setTo("");
+        setEvidence("");
+        setCertifiedBy("");
+        onClose();
       },
+      onError: (e) => notifications.show({
+        color: "red", title: "Could not record", message: errorMessage(e),
+      }),
     });
   }
 
-  const adjustButtons = adjustFor
-    ? [
-        { label: "Est. 100% workday", onClick: () => applyEstimate("100", "1", "0", "1") },
-        { label: "Est. 50% workday", onClick: () => applyEstimate("50", "1", "0", "2") },
-        { label: "Cancel", onClick: () => setAdjustFor(null) },
-      ]
-    : [{ label: "Offline balance", onClick: () => offline.mutate({ category, period_from: from, period_to: to }), disabled: offline.isPending }, { label: "Adjust", onClick: () => setAdjustFor(record("REF0001") ?? null) }];
+  return (
+    <Modal opened={opened} onClose={onClose} title="Record offline-sanctioned leave">
+      <Stack>
+        <TextInput
+          label="Employee id" value={employeeId}
+          onChange={(e) => setEmployeeId(e.currentTarget.value)}
+        />
+        <Select
+          label="Leave category" data={CATEGORY_OPTIONS} value={category}
+          onChange={(v) => setCategory(v ?? "cl")} allowDeselect={false}
+        />
+        <Group grow>
+          <TextInput
+            type="date" label="From" value={from}
+            onChange={(e) => setFrom(e.currentTarget.value)}
+          />
+          <TextInput
+            type="date" label="To" value={to}
+            onChange={(e) => setTo(e.currentTarget.value)}
+          />
+        </Group>
+        <TextInput
+          label="Sanction / evidence reference" required value={evidence}
+          onChange={(e) => setEvidence(e.currentTarget.value)}
+        />
+        <TextInput
+          label="Certified by" value={certifiedBy}
+          onChange={(e) => setCertifiedBy(e.currentTarget.value)}
+        />
+        <Group justify="flex-end">
+          <Button
+            loading={record.isPending}
+            disabled={!employeeId || !from || !evidence}
+            onClick={submit}
+          >
+            Record
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+}
+
+export default function RecordsPage() {
+  const [category, setCategory] = useState("");
+  const [status, setStatus] = useState("");
+  const [recording, setRecording] = useState(false);
+
+  const records = useLeaveRecords({ category, status });
+  const rows = records.data?.results ?? [];
+
+  if (records.error) {
+    return <Container size="xl"><ErrorState error={records.error} /></Container>;
+  }
 
   return (
     <Container size="xl">
       <PageHeader
         title="Leave Records"
-        subtitle="Balance, calendar and every submission"
+        subtitle="Every recorded leave, including sanctions synchronised from paper"
         action={
-          <Group gap="xs">
-            <Button variant="default" size="xs" onClick={() => setFrom("2026-01-01")}>
-              {from}
-            </Button>
-            <Button variant="default" size="xs" onClick={() => setTo("2026-06-30")}>
-              {to}
-            </Button>
-          </Group>
+          <Button onClick={() => setRecording(true)}>Record offline leave</Button>
         }
       />
 
-      <Stack gap="sm">
-        <Card withBorder padding="md">
-          <Group gap="md" wrap="wrap">
-            <Stack gap={0}>
-              <Text size="xs" c="dimmed">From</Text>
-              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-                     style={{ width: 140, padding: "4px 6px" }} />
-            </Stack>
-            <Stack gap={0}>
-              <Text size="xs" c="dimmed">To</Text>
-              <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-                     style={{ width: 140, padding: "4px 6px" }} />
-            </Stack>
-            <Stack gap={0}>
-              <Text size="xs" c="dimmed">Category</Text>
-              <select value={category} onChange={(e) => setCategory(e.target.value)}
-                      style={{ width: 160, padding: "4px 6px" }}>
-                {(lookups.data?.lookup_categories ?? []).map((c) =>
-                  <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-            </Stack>
-            <Stack gap={0}>
-              <Text size="xs" c="dimmed">Status</Text>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}
-                      style={{ width: 160, padding: "4px 6px" }}>
-                {["active", "withdrawn", "completed"].map((s) =>
-                  <option key={s} value={s}>{s}</option>)}
-              </select>
-            </Stack>
-            <Button size="xs" onClick={() => setStatus(status === "active" ? "completed" : "active")}>
-              Toggle {status}
-            </Button>
-          </Group>
-        </Card>
-
-        <Card withBorder padding="lg">
-          <Group justify="space-between" align="center">
-            <Stack gap={0}>
-              <Text fw={600}>Leave calendar</Text>
-              <Text size="sm" c="dimmed">Calendar of {from} → {to}</Text>
-            </Stack>
-            <Button size="xs" variant="light" color="gray">Export</Button>
-          </Group>
-          <DataTable<LeaveCalendar>
-            rows={calendar.data?.results ?? []}
-            loading={calendar.isPending}
-            rowKey={(r) => `${r.period_from}-${r.period_to}`}
-            minWidth={640}
-            columns={[
-              { key: "period", header: "Period",
-                render: (r) => <Text size="sm">
-                  {r.period_from} → {r.period_to}</Text> },
-              { key: "category", header: "Category",
-                render: (r) => CATEGORY_LABELS[r.category as keyof typeof CATEGORY_LABELS] ?? r.category },
-              { key: "balance", header: "Balance",
-                render: (r) => <Text size="sm">{Number(r.balances?.classic || 0) > 0 ? "✅" : "❌"} {r.balances?.classic ?? 0}</Text> },
-              { key: "note", header: "Note", render: (r) => r.note },
-            ]}
-            empty={{ icon: FaCalendarAlt, title: "No calendar entries", description: "Calendar periods for the leave module." }}
+      <Card withBorder padding="md" mb="md">
+        <Group gap="md" wrap="wrap">
+          <Select
+            label="Category" data={[{ value: "", label: "Any category" },
+                                   ...CATEGORY_OPTIONS]}
+            value={category} onChange={(v) => setCategory(v ?? "")}
+            allowDeselect={false}
           />
-        </Card>
-
-        <Card withBorder padding="lg">
-          <Group justify="space-between" align="center">
-            <Stack gap={0}>
-              <Text fw={600}>Leave records</Text>
-              <Text size="sm" c="dimmed">
-                Pending: {records.data?.results.filter((r) => r.status === "pending").length ?? 0}
-              </Text>
-            </Stack>
-            <Button size="xs" variant="light" color="gray">Export</Button>
-          </Group>
-          <DataTable<LeaveRecord>
-            rows={records.data?.results ?? []}
-            loading={records.isPending}
-            rowKey={(r) => r.id}
-            minWidth={1000}
-            columns={[
-              { key: "reference", header: "Reference",
-                render: (r) => <Text size="sm">{r.reference ?? `#${r.request_id}`}</Text> },
-              { key: "category", header: "Category",
-                render: (r) => CATEGORY_LABELS[r.category as keyof typeof CATEGORY_LABELS] ?? r.category },
-              { key: "type", header: "Type",
-                render: (r) => r.type },
-              {
-                key: "periods", header: "Periods",
-                render: (r) => (
-                  <Text size="sm">{r.period_from} → {r.period_to}</Text>
-                ) },
-              { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
-              { key: "days", header: "Days", render: (r) => r.days_taken ?? 0 },
-              {
-                key: "actions", header: "", align: "right",
-                render: (r) => (
-                  <Group gap={4}>
-                    {adjustFor?.id === r.id ? (
-                      <Group gap={4}>
-                        {adjustButtons.map((b) => (
-                          <Button
-                            key={b.label}
-                            size="compact-xs"
-                            onClick={b.onClick}
-                            disabled={b.disabled}
-                          >
-                            {b.label}
-                          </Button>
-                        ))}
-                      </Group>
-                    ) : (
-                      <Button size="compact-xs" variant="light" onClick={() => setAdjustFor(r)}>
-                        Estimate
-                      </Button>
-                    )}
-                  </Group>
-                ),
-              },
-            ]}
-            empty={{ icon: FaClipboardList, title: "No leave records", description: "Every leave submission appears here." }}
+          <Select
+            label="Status" data={STATUS_OPTIONS} value={status}
+            onChange={(v) => setStatus(v ?? "")} allowDeselect={false}
           />
-        </Card>
-      </Stack>
+        </Group>
+      </Card>
+
+      <Card withBorder padding="lg">
+        <DataTable<LeaveRequest>
+          rows={rows}
+          loading={records.isPending}
+          rowKey={(r) => r.id}
+          minWidth={900}
+          columns={[
+            { key: "reference", header: "Reference",
+              render: (r) => <Text size="sm">{r.reference ?? `#${r.id}`}</Text> },
+            { key: "employee", header: "Employee",
+              render: (r) => `u${r.user_id}` },
+            { key: "category", header: "Category",
+              render: (r) => r.category_label },
+            { key: "period", header: "Period",
+              render: (r) => `${r.period_from} → ${r.period_to}` },
+            { key: "days", header: "Days", render: (r) => r.days_counted },
+            { key: "source", header: "Source", render: (r) => r.source },
+            { key: "status", header: "Status",
+              render: (r) => <StatusBadge status={r.status} /> },
+          ]}
+          empty={{
+            icon: FaClipboardList, title: "No leave records",
+            description: "Every recorded sanction and application appears here.",
+          }}
+        />
+      </Card>
+
+      <OfflineRecordModal opened={recording} onClose={() => setRecording(false)} />
     </Container>
   );
 }

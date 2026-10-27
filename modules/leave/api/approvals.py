@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.api.exceptions import NotFoundError
+from core.api.exceptions import BadRequestError, NotFoundError
 from fusion_auth.permissions import HasModuleGrant, HasPermission
 from modules.leave.api import serializers as s
 from modules.leave.selectors import leave as sel
@@ -36,8 +36,6 @@ class TaskListView(APIView):
     def get(self, request):
         status_filter = request.query_params.get("status", "pending")
         if status_filter not in ("pending", "completed", "cancelled", "all"):
-            from core.api.exceptions import BadRequestError
-
             raise BadRequestError("Unknown task status filter.",
                                   code="invalid_filter")
         tasks = sel.tasks_for(_actor(request),
@@ -56,7 +54,8 @@ class TaskDecisionView(APIView):
     def post(self, request, pk: int):
         payload = s.DecisionSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
-        leave = app_service.decide(actor=_actor(request), task_id=pk, **payload.validated_data)
+        leave = app_service.decide(actor=_actor(request), task_id=pk,
+                                   **payload.validated_data)
         return Response(s.LeaveRequestSerializer(leave).data)
 
 

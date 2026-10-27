@@ -16,22 +16,37 @@ import {
 import type { LeaveResumption, WorkflowTask } from "../api/types";
 import { CATEGORY_LABELS } from "../api/types";
 
+interface DecisionAction {
+  action: string;
+  label: string;
+  recommendation?: "recommended" | "not_recommended";
+}
+
 /** The Unit Head is final for CL/RH and recommends for everything else
  *  (BR-EL-016 / BR-EL-017). The buttons follow the step, not the title. */
-function actionsFor(task: WorkflowTask): { action: string; label: string }[] {
+function actionsFor(task: WorkflowTask): DecisionAction[] {
   const unitHeadFinal = task.category === "cl" || task.category === "rh";
   switch (task.step_kind) {
     case "unit_head":
-      return unitHeadFinal
-        ? [{ action: "approve", label: "Approve" }, { action: "reject", label: "Reject" }]
-        : [{ action: "recommend", label: "Recommend" },
-           { action: "recommend", label: "Not recommended" }];
+      if (unitHeadFinal) {
+        return [
+          { action: "approve", label: "Approve" },
+          { action: "reject", label: "Reject" },
+        ];
+      }
+      return [
+        { action: "recommend", label: "Recommend",
+          recommendation: "recommended" },
+        { action: "recommend", label: "Not recommended",
+          recommendation: "not_recommended" },
+      ];
     case "establishment":
       return [{ action: "verify", label: "Verify & forward" }];
     case "sanction":
-      return task.authority === "director" || task.task_class.includes("sanction")
-        ? [{ action: "approve", label: "Approve" }, { action: "reject", label: "Reject" }]
-        : [{ action: "verify", label: "Forward" }];
+      return [
+        { action: "approve", label: "Approve" },
+        { action: "reject", label: "Reject" },
+      ];
     default:
       return [{ action: "approve", label: "Approve" }];
   }
@@ -44,7 +59,9 @@ export default function ApprovalsPage() {
   const resumptions = useResumptions();
   const review = useReviewResumption();
 
-  const [pending, setPending] = useState<{ task: WorkflowTask; action: string } | null>(null);
+  const [pending, setPending] = useState<{
+    task: WorkflowTask; decision: DecisionAction;
+  } | null>(null);
   const [note, setNote] = useState("");
   const [reviewFor, setReviewFor] = useState<LeaveResumption | null>(null);
   const [reviewNote, setReviewNote] = useState("");
@@ -58,12 +75,9 @@ export default function ApprovalsPage() {
     decide.mutate(
       {
         id: pending.task.id,
-        action: pending.action,
+        action: pending.decision.action,
         note,
-        recommendation: pending.action === "recommend"
-          ? (pending.task.step_kind === "unit_head" && note.toLowerCase().startsWith("not")
-            ? "not_recommended" : "recommended")
-          : undefined,
+        recommendation: pending.decision.recommendation,
       },
       {
         onSuccess: () => {
@@ -148,7 +162,7 @@ export default function ApprovalsPage() {
                           key={`${a.action}-${i}`} size="compact-xs"
                           variant={a.action === "reject" ? "subtle" : "light"}
                           color={a.action === "reject" ? "red" : undefined}
-                          onClick={() => { setPending({ task: t, action: a.action }); setNote(""); }}
+                          onClick={() => { setPending({ task: t, decision: a }); setNote(""); }}
                         >
                           {a.label}
                         </Button>
@@ -197,7 +211,7 @@ export default function ApprovalsPage() {
              title="Record the decision">
         <Stack>
           <Text size="sm" c="dimmed">
-            {pending && `${pending.task.step_kind.replace(/_/g, " ")} · ${pending.action}`}
+            {pending && `${pending.task.step_kind.replace(/_/g, " ")} · ${pending.decision.label}`}
           </Text>
           <Textarea
             label="Note" minRows={2} value={note}

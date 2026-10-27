@@ -27,6 +27,7 @@ from modules.leave.models import (
     LeavePolicy,
     SlaThreshold,
 )
+from modules.leave.services import authz
 
 log = logging.getLogger("fusion.leave.config")
 
@@ -50,16 +51,14 @@ def save_policy(*, actor, leave_year: int, entitlements: dict | None = None,
     Unknown category codes are refused rather than stored: a typo in an
     entitlement key would silently leave the real category on its default.
     """
-    from modules.leave.services import authz
-
     authz.require(actor, P_CONFIGURE)
 
     table = {k: str(v) for k, v in (entitlements or cat.ENTITLEMENT).items()}
     unknown = sorted(set(table) - set(cat.CATEGORIES))
     if unknown:
         raise ConflictError(
-            f"Unknown leave categor{'y' if len(unknown) == 1 else 'ies'}: "
-            f"{', '.join(unknown)}.", code="unknown_category",
+            f"Unknown leave categories: {', '.join(unknown)}.",
+            code="unknown_category",
             details=[{"supported": list(cat.CATEGORIES)}])
     for key, value in table.items():
         if float(value) < 0:
@@ -97,8 +96,6 @@ def save_policy(*, actor, leave_year: int, entitlements: dict | None = None,
 @transaction.atomic
 def replace_hierarchy(*, actor, category: str, steps: list[dict]) -> list[HierarchyStep]:
     """Replace the configured path for one category with the supplied steps."""
-    from modules.leave.services import authz
-
     authz.require(actor, P_CONFIGURE)
     if category and category not in cat.CATEGORIES:
         raise ConflictError(f"{category!r} is not a leave category in this baseline.",
@@ -111,16 +108,17 @@ def replace_hierarchy(*, actor, category: str, steps: list[dict]) -> list[Hierar
                 details=[{"valid": sorted(VALID_STEPS)}])
 
     HierarchyStep.objects.filter(category=category).delete()
-    created = [
-        HierarchyStep.objects.create(
-            category=category, unit=(step.get("unit") or "")[:60],
+    created = []
+    for index, step in enumerate(steps, start=1):
+        row = HierarchyStep.objects.create(
+            category=category,
+            unit=(step.get("unit") or "")[:60],
             designation=(step.get("designation") or "")[:80],
             step_order=int(step.get("step_order", index)),
             step_kind=step["step_kind"],
             authority=(step.get("authority") or "")[:32],
             label=(step.get("label") or "")[:80])
-        for index, step in enumerate(steps, start=1)
-    ]
+        created.append(row)
     log.info("leave.config.hierarchy_replaced category=%s steps=%d by=%s",
              category or "any", len(created), getattr(actor, "user_id", None))
     return created
@@ -136,8 +134,6 @@ def save_calendar(*, actor, leave_year: int, entries: list[dict],
     unpublished until `publish_calendar` runs, so a half-finished edit never
     becomes the governing calendar.
     """
-    from modules.leave.services import authz
-
     authz.require(actor, P_CONFIGURE)
     for index, entry in enumerate(entries, start=1):
         if entry.get("kind") not in VALID_KINDS:
@@ -145,12 +141,13 @@ def save_calendar(*, actor, leave_year: int, entries: list[dict],
                 f"Entry {index} has an unknown kind {entry.get('kind')!r}.",
                 code="invalid_holiday_kind", details=[{"valid": sorted(VALID_KINDS)}])
 
-    calendar = (HolidayCalendar.objects.filter(leave_year=leave_year,
-                                               published_at__isnull=True)
-                .order_by("-id").first()
-                or HolidayCalendar.objects.create(
-                    leave_year=leave_year,
-                    label=(label or f"Calendar {leave_year}")[:80]))
+    calendar = (HolidayCalendar.objects
+                .filter(leave_year=leave_year, published_at__isnull=True)
+                .order_by("-id").first())
+    if calendar is None:
+        calendar = HolidayCalendar.objects.create(
+            leave_year=leave_year,
+            label=(label or f"Calendar {leave_year}")[:80])
     if label:
         calendar.label = label[:80]
         calendar.save(update_fields=["label", "updated_at"])
@@ -171,8 +168,6 @@ def save_calendar(*, actor, leave_year: int, entries: list[dict],
 @transaction.atomic
 def publish_calendar(*, actor, calendar_id: int) -> HolidayCalendar:
     """Publishing makes this calendar the effective one, and no other."""
-    from modules.leave.services import authz
-
     authz.require(actor, P_CONFIGURE)
     calendar = HolidayCalendar.objects.select_for_update().filter(
         pk=calendar_id).first()
@@ -197,8 +192,6 @@ def save_thresholds(*, actor, task_class: str, reminder_hours: int,
                     escalation_hours: int, escalation_action: str = "notify",
                     escalate_to_role: str = "") -> SlaThreshold:
     """Configure the reminder and escalation thresholds for a task class."""
-    from modules.leave.services import authz
-
     authz.require(actor, P_CONFIGURE)
     if not (task_class or "").strip():
         raise ConflictError("An SLA threshold needs a task class.",

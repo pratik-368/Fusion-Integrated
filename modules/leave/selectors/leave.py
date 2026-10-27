@@ -16,7 +16,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import date
 
-from django.db.models import QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 from django.utils import timezone
 
 from modules.leave.domain import eligibility
@@ -28,6 +28,7 @@ from modules.leave.models import (
     LeaveLedgerEntry,
     LeavePolicy,
     LeaveRequest,
+    LeaveRequestTransition,
     LeaveResumption,
     LeaveSubstituteAssignment,
     SlaThreshold,
@@ -75,8 +76,12 @@ def requests_for(actor) -> QuerySet[LeaveRequest]:
         return base
     if _has(actor, P_APPROVE):
         # An approver sees their own leave plus what they have already acted on.
-        return (base.filter(user_id=own)
-                | base.filter(transitions__actor_user_id=own)).distinct()
+        # Asked as EXISTS rather than as a join through `transitions`: the join
+        # yields one row per transition and then needs DISTINCT, so the rows are
+        # de-duplicated only after the whole matching set has been assembled.
+        acted = LeaveRequestTransition.objects.filter(request=OuterRef("pk"),
+                                                      actor_user_id=own)
+        return base.filter(Q(user_id=own) | Exists(acted))
     return base.filter(user_id=own)
 
 
@@ -171,7 +176,8 @@ def _visible_tasks(actor) -> QuerySet[WorkflowTask]:
         clauses = by_role if clauses is None else (clauses | by_role)
     if clauses is None:
         return base.none()
-    return clauses.distinct()
+    # No join is involved, so there is nothing to de-duplicate.
+    return clauses
 
 
 def tasks_for(actor, *, status: str | None = None) -> QuerySet[WorkflowTask]:
@@ -202,6 +208,7 @@ def substitute_assignments_for(actor) -> QuerySet[LeaveSubstituteAssignment]:
     if own is None:
         return LeaveSubstituteAssignment.objects.none()
     return (LeaveSubstituteAssignment.objects
+            .select_related("request")
             .filter(nominee_user_id=own)
             .exclude(status="superseded"))
 

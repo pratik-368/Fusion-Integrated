@@ -48,6 +48,15 @@ def route_of(request) -> tuple[routing.Step, ...]:
     )
 
 
+def route_payload(route) -> list[dict]:
+    """The route as it is stored on the request row."""
+    return [
+        {"order": step.order, "kind": step.kind, "authority": step.authority,
+         "label": step.label, "task_class": step.task_class}
+        for step in route
+    ]
+
+
 def facts_for(request, route) -> dict[str, bool]:
     """The branch facts the STT rows are conditioned on."""
     return {
@@ -56,6 +65,13 @@ def facts_for(request, route) -> dict[str, bool]:
         "establishment_configured": routing.establishment_configured(route),
         "unit_head_final": request.category in cat.UNIT_HEAD_FINAL,
     }
+
+
+def _unit_of(employee) -> str:
+    """The employee's unit, or an empty string if the directory does not know
+    them. Only routing uses it, and an unknown unit is a routing problem that
+    the configured SLA escalation handles."""
+    return employee.unit if employee else ""
 
 
 def resolve_or_raise(*, request, action: str, actor_kind: str):
@@ -224,8 +240,8 @@ def submit_new(*, actor, category: str, period_from: date, period_to: date,
                      for f in check["failures"]])
 
     employee = facts.employee(actor.user_id)
-    unit = employee.unit if employee else ""
-    applicant_is_director = "Director" in tuple(getattr(actor, "roles", ()) or ())
+    unit = _unit_of(employee)
+    applicant_is_director = "Director" in (getattr(actor, "roles", ()) or ())
 
     policy = sel.current_policy(period_from.year)
     entitlements = policy.entitlements if policy else None
@@ -233,8 +249,6 @@ def submit_new(*, actor, category: str, period_from: date, period_to: date,
         category=category, unit=unit,
         rules=sel.hierarchy_rules(),
         applicant_is_director=applicant_is_director)
-    route_payload = [{"order": s.order, "kind": s.kind, "authority": s.authority,
-                      "label": s.label, "task_class": s.task_class} for s in route]
 
     substitute_required = bool(substitute_user_id)
     request = LeaveRequest.objects.create(
@@ -244,7 +258,7 @@ def submit_new(*, actor, category: str, period_from: date, period_to: date,
         station_leave=station_leave or {},
         substitute_user_id=substitute_user_id,
         substitute_required=substitute_required,
-        route=route_payload, applicant_is_director=applicant_is_director,
+        route=route_payload(route), applicant_is_director=applicant_is_director,
         submitted_at=timezone.now())
     request.reference = f"ELM-{period_from.year}-{request.pk:06d}"
     request.save(update_fields=["reference", "updated_at"])
@@ -334,8 +348,7 @@ def respond_to_substitute(*, actor, assignment_id: int, accept: bool,
             "That responsibility request is no longer awaiting a response.",
             code="stale_substitution")
 
-    employee = facts.employee(request.user_id)
-    unit = employee.unit if employee else ""
+    unit = _unit_of(facts.employee(request.user_id))
     action = sm.SUBSTITUTE_ACCEPT if accept else sm.SUBSTITUTE_DECLINE
     transition = resolve_or_raise(request=request, action=action,
                                   actor_kind=sm.SUBSTITUTE)
@@ -367,9 +380,8 @@ def nominate_replacement(*, actor, request_id: int,
     authz.require(actor, transition.permission)
     assignment = _nominate(request=request, applicant=request.user_id,
                            nominee_user_id=substitute_user_id)
-    employee = facts.employee(request.user_id)
     _advance(request=request, transition=transition, actor=actor,
-             unit=employee.unit if employee else "")
+             unit=_unit_of(facts.employee(request.user_id)))
     return assignment
 
 
@@ -406,15 +418,15 @@ def decide(*, actor, task_id: int, action: str, note: str = "",
 
     applicant = facts.employee(request.user_id)
     employee_kind = applicant.kind if applicant else cat.STAFF
-    unit = applicant.unit if applicant else ""
+    unit = _unit_of(applicant)
     policy = sel.current_policy(request.period_from.year)
     entitlements = policy.entitlements if policy else None
 
     if action == sm.RECOMMEND:
-        request.recommendation = (recommendation
-                                  if recommendation in ("recommended",
-                                                        "not_recommended")
-                                  else "recommended")
+        if recommendation in ("recommended", "not_recommended"):
+            request.recommendation = recommendation
+        else:
+            request.recommendation = "recommended"
         request.recommendation_note = note[:300]
         request.save(update_fields=["recommendation", "recommendation_note",
                                     "updated_at"])
@@ -512,8 +524,7 @@ def withdraw(*, actor, request_id: int, reason: str = "") -> LeaveRequest:
     request = _locked_request(request_id)
     authz.require(actor, sm.P_WITHDRAW)
     authz.require_owner(actor, request)
-    employee = facts.employee(request.user_id)
-    unit = employee.unit if employee else ""
+    unit = _unit_of(facts.employee(request.user_id))
     transition = resolve_or_raise(request=request, action=sm.WITHDRAW,
                                   actor_kind=sm.EMPLOYEE)
     _advance(request=request, transition=transition, actor=actor, unit=unit,
@@ -549,7 +560,7 @@ def request_cancellation(*, actor, request_id: int, note: str = "") -> LeaveRequ
 
     employee = facts.employee(base.user_id)
     route = routing.resolve_route(
-        category=base.category, unit=employee.unit if employee else "",
+        category=base.category, unit=_unit_of(employee),
         rules=sel.hierarchy_rules(),
         applicant_is_director=base.applicant_is_director)
     cancellation = LeaveRequest.objects.create(
@@ -557,8 +568,7 @@ def request_cancellation(*, actor, request_id: int, note: str = "") -> LeaveRequ
         user_id=base.user_id, base_request=base, period_from=base.period_from,
         period_to=base.period_to, days_counted=base.days_counted,
         purpose=note[:300] or "Cancellation of approved leave",
-        route=[{"order": s.order, "kind": s.kind, "authority": s.authority,
-                "label": s.label, "task_class": s.task_class} for s in route],
+        route=route_payload(route),
         applicant_is_director=base.applicant_is_director,
         submitted_at=timezone.now())
     cancellation.reference = f"ELMC-{base.period_from.year}-{cancellation.pk:06d}"
@@ -567,7 +577,7 @@ def request_cancellation(*, actor, request_id: int, note: str = "") -> LeaveRequ
     transition = resolve_or_raise(request=cancellation, action=sm.SEND,
                                   actor_kind=sm.EMPLOYEE)
     _advance(request=cancellation, transition=transition, actor=actor,
-             unit=employee.unit if employee else "", note=note)
+             unit=_unit_of(employee), note=note)
     return cancellation
 
 
@@ -608,7 +618,7 @@ def request_extension(*, actor, request_id: int, period_to: date,
             code="insufficient_balance")
 
     route = routing.resolve_route(
-        category=base.category, unit=employee.unit if employee else "",
+        category=base.category, unit=_unit_of(employee),
         rules=sel.hierarchy_rules(),
         applicant_is_director=base.applicant_is_director)
     extension = LeaveRequest.objects.create(
@@ -617,8 +627,7 @@ def request_extension(*, actor, request_id: int, period_to: date,
         period_to=period_to, days_counted=incremental, purpose=purpose[:300],
         substitute_user_id=substitute_user_id,
         substitute_required=bool(substitute_user_id),
-        route=[{"order": s.order, "kind": s.kind, "authority": s.authority,
-                "label": s.label, "task_class": s.task_class} for s in route],
+        route=route_payload(route),
         applicant_is_director=base.applicant_is_director,
         submitted_at=timezone.now())
     extension.reference = f"ELMX-{period_to.year}-{extension.pk:06d}"
@@ -631,7 +640,7 @@ def request_extension(*, actor, request_id: int, period_to: date,
     transition = resolve_or_raise(request=extension, action=sm.SEND,
                                   actor_kind=sm.EMPLOYEE)
     _advance(request=extension, transition=transition, actor=actor,
-             unit=employee.unit if employee else "", note=purpose)
+             unit=_unit_of(employee), note=purpose)
     return extension
 
 

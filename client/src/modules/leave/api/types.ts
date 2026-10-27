@@ -16,6 +16,7 @@ export interface LeaveTransition {
   actor_user_id: number | null;
   actor_role: string;
   actor_role_label: string;
+  step_kind: string;
   note: string;
   at: string;
 }
@@ -42,10 +43,19 @@ export interface LeaveRequest {
   recommendation: string;
   recommendation_note: string;
   decision_note: string;
+  decided_by_user_id: number | null;
   source: "online" | "offline";
   evidence_reference: string;
   base_request: number | null;
   route: { order: number; kind: string; authority: string; label: string }[];
+  current_step: number;
+  applicant_is_director: boolean;
+  submitted_at: string | null;
+  decided_at: string | null;
+  withdrawn_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
   history?: LeaveTransition[];
 }
 
@@ -68,6 +78,7 @@ export interface WorkflowTask {
   assigned_at: string;
   reminded_at: string | null;
   escalated_at: string | null;
+  completed_at: string | null;
   note: string;
 }
 
@@ -93,6 +104,7 @@ export interface LedgerEntry {
   days: string;
   request_id: number | null;
   note: string;
+  actor_user_id: number | null;
   at: string;
 }
 
@@ -109,6 +121,7 @@ export interface SubstitutionAssignment {
   status_label: string;
   responded_at: string | null;
   response_note: string;
+  created_at: string;
 }
 
 export interface LeaveResumption {
@@ -122,7 +135,9 @@ export interface LeaveResumption {
   remarks: string;
   outcome: "pending" | "no_adjustment" | "early" | "late";
   outcome_label: string;
+  submitted_at: string | null;
   reviewed_at: string | null;
+  reviewed_by_user_id: number | null;
   review_note: string;
 }
 
@@ -187,6 +202,7 @@ export interface HolidayCalendar {
   leave_year: number;
   label: string;
   published_at: string | null;
+  published_by_user_id: number | null;
   is_effective: boolean;
   entries: HolidayEntry[];
 }
@@ -202,25 +218,6 @@ export interface HierarchyRule {
   is_active: boolean;
 }
 
-export interface LeaveConfig {
-  periods?: { name: string; period_from: string; period_to: string; note?: string }[];
-  categories?: string[];
-}
-
-export interface Hierarchy {
-  departments?: { code: string; manages_of: string }[];
-  posts?: string[];
-  committee?: string[];
-}
-
-export interface SlaConfig {
-  targets?: string[];
-  remind_before: string;
-  escalate_after: string;
-  breach_days: string;
-  lock_after: string;
-}
-
 export const CATEGORY_LABELS: Record<LeaveCategory, string> = {
   cl: "Casual Leave",
   rh: "Restricted Holiday",
@@ -229,11 +226,3 @@ export const CATEGORY_LABELS: Record<LeaveCategory, string> = {
   col: "Commuted Leave",
   vl: "Vacation Leave",
 };
-
-export interface Adjustment {
-  label: string;
-  category: string;
-  period_from: string;
-  period_to: string;
-  days_taken: string;
-}

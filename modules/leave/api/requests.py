@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.api import csv as csv_export
+from core.api.exceptions import NotFoundError
 from fusion_auth.permissions import HasModuleGrant, HasPermission
 from modules.leave.api import serializers as s
 from modules.leave.domain import state_machine as sm
@@ -99,21 +100,20 @@ class LeaveRequestDetailView(APIView):
 
     def get(self, request, pk: int):
         leave = sel.request_for(_actor(request), pk)
-        from core.api.exceptions import NotFoundError
-
         if leave is None:
             raise NotFoundError("No such leave request.")
         return Response(_request_payload(leave))
 
 
-@extend_schema(request=s.WithdrawSerializer, responses=s.LeaveRequestSerializer)
+@extend_schema(request=s.LeaveWithdrawSerializer,
+               responses=s.LeaveRequestSerializer)
 class LeaveWithdrawView(APIView):
     """EL-UC-007 — withdraw a pending request, effective immediately."""
 
     permission_classes = [MODULE, HasPermission(P_WITHDRAW)]
 
     def post(self, request, pk: int):
-        payload = s.WithdrawSerializer(data=request.data)
+        payload = s.LeaveWithdrawSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
         leave = app_service.withdraw(actor=_actor(request), request_id=pk,
                                      reason=payload.validated_data.get("reason", ""))
@@ -201,8 +201,6 @@ class LeaveApplicationPrintView(APIView):
     @extend_schema(responses={200: str},
                    description="CSV representation of one leave application.")
     def get(self, request, pk: int):
-        from core.api.exceptions import NotFoundError
-
         leave = sel.request_for(_actor(request), pk)
         if leave is None:
             raise NotFoundError("No such leave request.")

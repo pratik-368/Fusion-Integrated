@@ -3,7 +3,6 @@ import {
   Badge, Button, Card, Container, Grid, Group, Modal, Select, SimpleGrid,
   Stack, Table, Text, Textarea, TextInput,
 } from "@mantine/core";
-import { DateInput } from "@mantine/dates";
 import { notifications } from "@mantine/notifications";
 import { FaCalendarCheck, FaClipboardCheck, FaUserCheck } from "react-icons/fa";
 
@@ -14,10 +13,11 @@ import { PageHeader } from "../../../ui/components/PageHeader";
 import { StatusBadge } from "../../../ui/components/StatusBadge";
 import {
   useApplyLeave, useLeaveSummary, useMyLeaveRequests, useMySubstitutions,
-  useNominateReplacement, useRequestCancellation, useRequestExtension,
-  useRespondToSubstitution, useSubmitResumption, useValidateLeave, useWithdraw,
+  useNominateReplacement, usePrintLeave, useRequestCancellation,
+  useRequestExtension, useRespondToSubstitution, useSubmitResumption,
+  useValidateLeave, useWithdraw,
 } from "../api/hooks";
-import type { LeaveRequest } from "../api/types";
+import type { LeaveRequest, ValidationResult } from "../api/types";
 import { CATEGORY_LABELS } from "../api/types";
 
 const CATEGORY_OPTIONS = Object.entries(CATEGORY_LABELS)
@@ -33,12 +33,12 @@ const HALF_OPTIONS = [
 function ApplyModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
   const [category, setCategory] = useState<string>("cl");
   const [half, setHalf] = useState<string>("");
-  const [from, setFrom] = useState<string | null>(null);
-  const [to, setTo] = useState<string | null>(null);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [purpose, setPurpose] = useState("");
   const [substitute, setSubstitute] = useState("");
   const [station, setStation] = useState("");
-  const [verdict, setVerdict] = useState<{ is_valid: boolean } | null>(null);
+  const [verdict, setVerdict] = useState<ValidationResult | null>(null);
 
   const validate = useValidateLeave();
   const apply = useApplyLeave();
@@ -52,8 +52,8 @@ function ApplyModal({ opened, onClose }: { opened: boolean; onClose: () => void 
 
   const body = {
     category,
-    period_from: from ?? "",
-    period_to: to ?? from ?? "",
+    period_from: from,
+    period_to: to || from,
     half,
   };
 
@@ -65,8 +65,14 @@ function ApplyModal({ opened, onClose }: { opened: boolean; onClose: () => void 
           onChange={(v) => { setCategory(v ?? "cl"); reset(); }} allowDeselect={false}
         />
         <Group grow>
-          <DateInput label="From" value={from ?? undefined} onChange={setFrom} />
-          <DateInput label="To" value={to ?? undefined} onChange={setTo} />
+          <TextInput
+            type="date" label="From" value={from}
+            onChange={(e) => setFrom(e.currentTarget.value)}
+          />
+          <TextInput
+            type="date" label="To" value={to}
+            onChange={(e) => setTo(e.currentTarget.value)}
+          />
         </Group>
         {category === "cl" && (
           <Select
@@ -92,8 +98,13 @@ function ApplyModal({ opened, onClose }: { opened: boolean; onClose: () => void 
           <Card withBorder padding="sm" bg={verdict.is_valid ? "green.0" : "red.0"}>
             <Stack gap={4}>
               <Text size="sm" fw={600}>
-                Check the server result for whether this application can proceed.
+                {verdict.is_valid
+                  ? "This application can proceed."
+                  : "This application cannot proceed yet."}
               </Text>
+              {verdict.failures.map((failure) => (
+                <Text key={failure.code} size="sm">{failure.message}</Text>
+              ))}
             </Stack>
           </Card>
         )}
@@ -103,7 +114,7 @@ function ApplyModal({ opened, onClose }: { opened: boolean; onClose: () => void 
             variant="default" loading={validate.isPending}
             disabled={!from}
             onClick={() => validate.mutate(body, {
-              onSuccess: (data) => setVerdict(data as { is_valid: boolean }),
+              onSuccess: (data) => setVerdict(data),
               onError: (e) => notifications.show({
                 color: "red", title: "Could not validate", message: errorMessage(e),
               }),
@@ -151,22 +162,32 @@ export default function MyLeavePage() {
   const extend = useRequestExtension();
   const resume = useSubmitResumption();
   const nominate = useNominateReplacement();
+  const print = usePrintLeave();
   const [applying, setApplying] = useState(false);
   const [replacementFor, setReplacementFor] = useState<number | null>(null);
   const [replacementId, setReplacementId] = useState("");
   const [extensionFor, setExtensionFor] = useState<number | null>(null);
-  const [extensionTo, setExtensionTo] = useState<string | null>(null);
+  const [extensionTo, setExtensionTo] = useState("");
   const [resumeFor, setResumeFor] = useState<number | null>(null);
-  const [resumeDate, setResumeDate] = useState<string | null>(null);
+  const [resumeDate, setResumeDate] = useState("");
 
   if (summary.error) {
     return <Container size="xl"><ErrorState error={summary.error} /></Container>;
   }
 
-  function act(fn: () => void, title: string) {
-    fn();
-    notifications.show({ color: "blue", title, message: "The request has been updated." });
+  function reportUpdated(title: string) {
+    notifications.show({
+      color: "blue", title, message: "The request has been updated.",
+    });
   }
+
+  function reportFailed(title: string, error: unknown) {
+    notifications.show({ color: "red", title, message: errorMessage(error) });
+  }
+
+  const balances = summary.data?.balances ?? [];
+  const waiting = (substitutions.data?.results ?? [])
+    .filter((assignment) => assignment.status === "nominated");
 
   return (
     <Container size="xl">
@@ -178,7 +199,7 @@ export default function MyLeavePage() {
       />
 
       <SimpleGrid cols={{ base: 2, md: 4 }} mb="lg">
-        {(summary.data?.balances ?? []).map((b) => (
+        {balances.map((b) => (
           <Card key={b.id} withBorder padding="md">
             <Text size="xs" c="dimmed" tt="uppercase">{b.category_label}</Text>
             <Text fw={700} size="xl">{b.available_days}</Text>
@@ -188,7 +209,7 @@ export default function MyLeavePage() {
             </Text>
           </Card>
         ))}
-        {(summary.data?.balances ?? []).length === 0 && !summary.isPending && (
+        {balances.length === 0 && !summary.isPending && (
           <Card withBorder padding="md">
             <Text size="sm" c="dimmed">No leave account yet for this year.</Text>
           </Card>
@@ -230,8 +251,10 @@ export default function MyLeavePage() {
                     <Group justify="flex-end" gap={4} wrap="nowrap">
                       <Button
                         size="compact-xs" variant="subtle"
-                        component="a" target="_blank" rel="noopener"
-                        href={`/api/v1/leave/requests/${r.id}/print`}
+                        loading={print.isPending && print.variables === r.id}
+                        onClick={() => print.mutate(r.id, {
+                          onError: (e) => reportFailed("Could not print", e),
+                        })}
                       >
                         Print
                       </Button>
@@ -239,9 +262,12 @@ export default function MyLeavePage() {
                         <Button
                           size="compact-xs" variant="subtle" color="gray"
                           loading={withdraw.isPending}
-                          onClick={() => act(
-                            () => withdraw.mutate({ id: r.id, reason: "Withdrawn by the employee" }),
-                            "Withdrawn")}
+                          onClick={() => withdraw.mutate(
+                            { id: r.id, reason: "Withdrawn by the employee" },
+                            {
+                              onSuccess: () => reportUpdated("Withdrawn"),
+                              onError: (e) => reportFailed("Could not withdraw", e),
+                            })}
                         >
                           Withdraw
                         </Button>
@@ -250,22 +276,27 @@ export default function MyLeavePage() {
                         <>
                           <Button
                             size="compact-xs" variant="subtle" color="gray"
-                            onClick={() => { setExtensionFor(r.id); setExtensionTo(null); }}
+                            onClick={() => { setExtensionFor(r.id); setExtensionTo(""); }}
                           >
                             Extend
                           </Button>
                           <Button
                             size="compact-xs" variant="subtle" color="gray"
-                            onClick={() => { setResumeFor(r.id); setResumeDate(null); }}
+                            onClick={() => { setResumeFor(r.id); setResumeDate(""); }}
                           >
                             Resume
                           </Button>
                           <Button
                             size="compact-xs" variant="subtle" color="red"
                             loading={cancel.isPending}
-                            onClick={() => act(
-                              () => cancel.mutate({ id: r.id, note: "Cancellation requested" }),
-                              "Cancellation requested")}
+                            onClick={() => cancel.mutate(
+                              { id: r.id, note: "Cancellation requested" },
+                              {
+                                onSuccess: () =>
+                                  reportUpdated("Cancellation requested"),
+                                onError: (e) =>
+                                  reportFailed("Could not request cancellation", e),
+                              })}
                           >
                             Cancel
                           </Button>
@@ -294,7 +325,7 @@ export default function MyLeavePage() {
             <Group justify="space-between" mb="sm">
               <Text fw={600}>Responsibility requests</Text>
               <Badge variant="light">
-                {summary.data?.substitutions_awaiting_response ?? 0} awaiting you
+                {waiting.length} awaiting you
               </Badge>
             </Group>
             <Table>
@@ -306,9 +337,7 @@ export default function MyLeavePage() {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {(substitutions.data?.results ?? [])
-                  .filter((a) => a.status === "nominated")
-                  .map((a) => (
+                {waiting.map((a) => (
                     <Table.Tr key={a.id}>
                       <Table.Td>u{a.applicant_user_id}</Table.Td>
                       <Table.Td>
@@ -352,7 +381,7 @@ export default function MyLeavePage() {
                   ))}
               </Table.Tbody>
             </Table>
-            {(substitutions.data?.results ?? []).length === 0 && (
+            {waiting.length === 0 && (
               <Text size="sm" c="dimmed">
                 <FaUserCheck size={12} /> Nothing is waiting on you.
               </Text>
@@ -401,12 +430,15 @@ export default function MyLeavePage() {
           <Text size="sm" c="dimmed">
             Only the additional period is posted if the extension is approved.
           </Text>
-          <DateInput label="Extend until" value={extensionTo ?? undefined} onChange={setExtensionTo} />
+          <TextInput
+            type="date" label="Extend until" value={extensionTo}
+            onChange={(e) => setExtensionTo(e.currentTarget.value)}
+          />
           <Group justify="flex-end">
             <Button
               loading={extend.isPending} disabled={!extensionTo}
               onClick={() => extend.mutate(
-                { id: extensionFor!, period_to: extensionTo! }, {
+                { id: extensionFor!, period_to: extensionTo }, {
                   onSuccess: () => {
                     notifications.show({
                       color: "green", title: "Extension submitted",
@@ -432,12 +464,15 @@ export default function MyLeavePage() {
             The Sanctioning Authority reviews this; a balance adjustment happens
             only if the return date differs from the approved end date.
           </Text>
-          <DateInput label="Actual resumption date" value={resumeDate ?? undefined} onChange={setResumeDate} />
+          <TextInput
+            type="date" label="Actual resumption date" value={resumeDate}
+            onChange={(e) => setResumeDate(e.currentTarget.value)}
+          />
           <Group justify="flex-end">
             <Button
               loading={resume.isPending} disabled={!resumeDate}
               onClick={() => resume.mutate(
-                { id: resumeFor!, actual_date: resumeDate! }, {
+                { id: resumeFor!, actual_date: resumeDate }, {
                   onSuccess: () => {
                     notifications.show({
                       color: "green", title: "Submitted for review",
