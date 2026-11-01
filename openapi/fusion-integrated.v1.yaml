@@ -1693,6 +1693,828 @@ paths:
               schema:
                 $ref: '#/components/schemas/AcademicFilters'
           description: ''
+  /api/v1/psm/audit:
+    get:
+      operationId: v1_psm_audit_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEvent'
+          description: ''
+  /api/v1/psm/communications:
+    get:
+      operationId: v1_psm_communications_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Communication'
+          description: ''
+  /api/v1/psm/dashboard:
+    get:
+      operationId: v1_psm_dashboard_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+          description: ''
+  /api/v1/psm/discrepancies:
+    get:
+      operationId: v1_psm_discrepancies_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discrepancy'
+          description: ''
+    post:
+      operationId: v1_psm_discrepancies_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Discrepancy'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Discrepancy'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Discrepancy'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discrepancy'
+          description: ''
+  /api/v1/psm/discrepancies/{id}/resolve:
+    post:
+      operationId: v1_psm_discrepancies_resolve_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Discrepancy'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Discrepancy'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Discrepancy'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discrepancy'
+          description: ''
+  /api/v1/psm/goods-receipts:
+    get:
+      operationId: v1_psm_goods_receipts_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoodsReceipt'
+          description: ''
+    post:
+      operationId: v1_psm_goods_receipts_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoodsReceipt'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GoodsReceipt'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GoodsReceipt'
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoodsReceipt'
+          description: ''
+  /api/v1/psm/goods-receipts/{id}/confirm:
+    post:
+      operationId: v1_psm_goods_receipts_confirm_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoodsReceipt'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GoodsReceipt'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GoodsReceipt'
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoodsReceipt'
+          description: ''
+  /api/v1/psm/indents:
+    get:
+      operationId: v1_psm_indents_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndentRead'
+          description: ''
+    post:
+      operationId: v1_psm_indents_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IndentRead'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/IndentRead'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/IndentRead'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndentRead'
+          description: ''
+  /api/v1/psm/indents/{id}/{action}:
+    post:
+      operationId: psm_indent_action
+      parameters:
+      - in: path
+        name: action
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IndentRead'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/IndentRead'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/IndentRead'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndentRead'
+          description: ''
+  /api/v1/psm/indents/{id}/history:
+    get:
+      operationId: v1_psm_indents_history_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndentHistory'
+          description: ''
+  /api/v1/psm/inventory:
+    get:
+      operationId: v1_psm_inventory_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inventory'
+          description: ''
+    post:
+      operationId: v1_psm_inventory_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Inventory'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Inventory'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Inventory'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inventory'
+          description: ''
+  /api/v1/psm/invoices:
+    get:
+      operationId: v1_psm_invoices_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceCreate'
+          description: ''
+    post:
+      operationId: v1_psm_invoices_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceCreate'
+          description: ''
+  /api/v1/psm/invoices/{id}/payments:
+    post:
+      operationId: v1_psm_invoices_payments_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentResult'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentResult'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentResult'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResult'
+          description: ''
+  /api/v1/psm/invoices/{id}/verify:
+    post:
+      operationId: v1_psm_invoices_verify_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceCreate'
+          description: ''
+  /api/v1/psm/policies:
+    get:
+      operationId: v1_psm_policies_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyRead'
+          description: ''
+    put:
+      operationId: v1_psm_policies_update
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyRead'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PolicyRead'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PolicyRead'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyRead'
+          description: ''
+  /api/v1/psm/purchase-orders:
+    get:
+      operationId: v1_psm_purchase_orders_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrder'
+          description: ''
+    post:
+      operationId: v1_psm_purchase_orders_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseOrder'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PurchaseOrder'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PurchaseOrder'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrder'
+          description: ''
+  /api/v1/psm/report-schedules:
+    get:
+      operationId: v1_psm_report_schedules_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportSchedule'
+          description: ''
+    post:
+      operationId: v1_psm_report_schedules_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportSchedule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportSchedule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportSchedule'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportSchedule'
+          description: ''
+  /api/v1/psm/report-schedules/{id}:
+    delete:
+      operationId: v1_psm_report_schedules_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/psm/reports/indents.csv:
+    get:
+      operationId: v1_psm_reports_indents.csv_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndentRead'
+          description: ''
+  /api/v1/psm/stock-transfers:
+    get:
+      operationId: v1_psm_stock_transfers_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferRead'
+          description: ''
+    post:
+      operationId: v1_psm_stock_transfers_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRead'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TransferRead'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TransferRead'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferRead'
+          description: ''
+  /api/v1/psm/stock-transfers/{id}/{action}:
+    post:
+      operationId: psm_stock_transfer_action
+      parameters:
+      - in: path
+        name: action
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRead'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TransferRead'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TransferRead'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferRead'
+          description: ''
+  /api/v1/psm/tenders:
+    get:
+      operationId: v1_psm_tenders_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tender'
+          description: ''
+    post:
+      operationId: v1_psm_tenders_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tender'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Tender'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Tender'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tender'
+          description: ''
+  /api/v1/psm/tenders/{id}/{action}:
+    post:
+      operationId: psm_tender_action
+      parameters:
+      - in: path
+        name: action
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tender'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Tender'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Tender'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tender'
+          description: ''
+  /api/v1/psm/vendors:
+    get:
+      operationId: v1_psm_vendors_retrieve
+      tags:
+      - v1
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vendor'
+          description: ''
+    post:
+      operationId: v1_psm_vendors_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Vendor'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Vendor'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Vendor'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vendor'
+          description: ''
+  /api/v1/psm/vendors/{id}:
+    put:
+      operationId: v1_psm_vendors_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Vendor'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Vendor'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Vendor'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vendor'
+          description: ''
+  /api/v1/psm/vendors/{id}/verify:
+    post:
+      operationId: v1_psm_vendors_verify_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Vendor'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Vendor'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Vendor'
+        required: true
+      security:
+      - iamSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vendor'
+          description: ''
 components:
   schemas:
     AcademicDirectory:
@@ -2012,6 +2834,61 @@ components:
         * `registered` - Registered students
         * `alumni` - Alumni
         * `all` - Everyone
+<<<<<<< Updated upstream
+=======
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        actor_id:
+          type: integer
+          nullable: true
+        action:
+          type: string
+        object_type:
+          type: string
+        object_id:
+          type: integer
+        details: {}
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - action
+      - actor_id
+      - created_at
+      - details
+      - id
+      - object_id
+      - object_type
+    BalanceAdjustment:
+      type: object
+      properties:
+        employee_user_id:
+          type: integer
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        leave_year:
+          type: integer
+          maximum: 2100
+          minimum: 2000
+        days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        note:
+          type: string
+          maxLength: 300
+      required:
+      - category
+      - days
+      - employee_user_id
+      - note
+    BlankEnum:
+      enum:
+      - ''
+>>>>>>> Stashed changes
     BulkOutcome:
       type: object
       properties:
@@ -2083,6 +2960,34 @@ components:
       - cleared
       - message
       - user_id
+    Communication:
+      type: object
+      properties:
+        id:
+          type: integer
+        event:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        delivery_status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - body
+      - created_at
+      - delivered_at
+      - delivery_status
+      - event
+      - id
+      - subject
     Company:
       type: object
       properties:
@@ -2297,6 +3202,63 @@ components:
         * `consent_failure` - Did not appear after consenting (r19)
         * `code_of_conduct` - Code of conduct (r21)
         * `misrepresentation` - False resume or unfair means (r18)
+<<<<<<< Updated upstream
+=======
+    Dashboard:
+      type: object
+      properties:
+        indents_by_status:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        stock_items:
+          type: integer
+        stock_units:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,15}(?:\.\d{0,3})?$
+        open_purchase_orders:
+          type: integer
+        held_invoices:
+          type: integer
+      required:
+      - held_invoices
+      - indents_by_status
+      - open_purchase_orders
+      - stock_items
+      - stock_units
+    Decision:
+      type: object
+      properties:
+        action:
+          $ref: '#/components/schemas/DecisionActionEnum'
+        note:
+          type: string
+          maxLength: 300
+        recommendation:
+          allOf:
+          - $ref: '#/components/schemas/RecommendationEnum'
+          default: ''
+      required:
+      - action
+    DecisionActionEnum:
+      enum:
+      - approve
+      - reject
+      - recommend
+      - verify
+      - approve_cancellation
+      - reject_cancellation
+      type: string
+      description: |-
+        * `approve` - approve
+        * `reject` - reject
+        * `recommend` - recommend
+        * `verify` - verify
+        * `approve_cancellation` - approve_cancellation
+        * `reject_cancellation` - reject_cancellation
+>>>>>>> Stashed changes
     Detail:
       type: object
       properties:
@@ -2304,6 +3266,30 @@ components:
           type: string
       required:
       - detail
+    Discrepancy:
+      type: object
+      properties:
+        id:
+          type: integer
+        receipt:
+          type: integer
+        description:
+          type: string
+        evidence: {}
+        status:
+          type: string
+        resolution:
+          type: string
+        resolution_notes:
+          type: string
+      required:
+      - description
+      - evidence
+      - id
+      - receipt
+      - resolution
+      - resolution_notes
+      - status
     DocumentLink:
       type: object
       description: A Drive link. Validated in core.files.drive.
@@ -2405,6 +3391,167 @@ components:
       - fee_reference
       - season
       - user_id
+<<<<<<< Updated upstream
+=======
+    FieldEnum:
+      enum:
+      - purpose
+      - evidence_reference
+      - station_leave
+      - decision_note
+      type: string
+      description: |-
+        * `purpose` - purpose
+        * `evidence_reference` - evidence_reference
+        * `station_leave` - station_leave
+        * `decision_note` - decision_note
+    GoodsReceipt:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        purchase_order:
+          type: integer
+          readOnly: true
+        grn_number:
+          type: string
+          readOnly: true
+        inspected_by_id:
+          type: integer
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        discrepancy_open:
+          type: boolean
+          readOnly: true
+        evidence:
+          readOnly: true
+        confirmed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - confirmed_at
+      - created_at
+      - discrepancy_open
+      - evidence
+      - grn_number
+      - id
+      - inspected_by_id
+      - purchase_order
+      - status
+    HalfEnum:
+      enum:
+      - first
+      - second
+      type: string
+      description: |-
+        * `` - Full day
+        * `first` - First half
+        * `second` - Second half
+    HierarchyReplace:
+      type: object
+      properties:
+        category:
+          oneOf:
+          - $ref: '#/components/schemas/CategoryEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/HierarchyStep'
+      required:
+      - category
+      - steps
+    HierarchyStep:
+      type: object
+      properties:
+        step_order:
+          type: integer
+          minimum: 1
+        step_kind:
+          $ref: '#/components/schemas/StepKindEnum'
+        authority:
+          type: string
+          maxLength: 32
+        unit:
+          type: string
+          maxLength: 60
+        designation:
+          type: string
+          maxLength: 80
+        label:
+          type: string
+          maxLength: 80
+      required:
+      - step_kind
+    HolidayCalendar:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        leave_year:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        label:
+          type: string
+          maxLength: 80
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+        published_by_user_id:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        is_effective:
+          type: boolean
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/HolidayEntry'
+          readOnly: true
+      required:
+      - entries
+      - id
+      - leave_year
+    HolidayEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        date:
+          type: string
+          format: date
+        kind:
+          $ref: '#/components/schemas/HolidayEntryKindEnum'
+        label:
+          type: string
+          maxLength: 120
+      required:
+      - date
+      - id
+      - kind
+    HolidayEntryKindEnum:
+      enum:
+      - closed_holiday
+      - restricted_holiday
+      type: string
+      description: |-
+        * `closed_holiday` - Closed holiday
+        * `restricted_holiday` - Restricted holiday
+>>>>>>> Stashed changes
     IncidentRecorded:
       type: object
       properties:
@@ -2415,6 +3562,151 @@ components:
       required:
       - incident
       - recommendation
+    IndentHistory:
+      type: object
+      properties:
+        versions:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        decisions:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        audit:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+      required:
+      - audit
+      - decisions
+      - versions
+    IndentLineRead:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        item_code:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 300
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,9}(?:\.\d{0,3})?$
+        estimated_unit_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        unit:
+          type: string
+          maxLength: 30
+      required:
+      - description
+      - estimated_unit_cost
+      - id
+      - quantity
+    IndentRead:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        indent_number:
+          type: string
+          maxLength: 32
+        requestor_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        department_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        status:
+          $ref: '#/components/schemas/IndentReadStatusEnum'
+        justification:
+          type: string
+          maxLength: 4000
+        priority:
+          type: string
+          maxLength: 20
+        criticality:
+          type: string
+          maxLength: 80
+        estimated_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndentLineRead'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        submitted_at:
+          type: string
+          format: date-time
+          nullable: true
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - created_at
+      - department_id
+      - id
+      - indent_number
+      - justification
+      - lines
+      - requestor_id
+    IndentReadStatusEnum:
+      enum:
+      - draft
+      - submitted
+      - stock_reserved
+      - internal_issue
+      - department_review
+      - head_review
+      - procurement_review
+      - final_approval
+      - procurement_authorized
+      - tender
+      - po_issued
+      - partially_received
+      - received
+      - rejected
+      - withdrawn
+      - cancelled
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `submitted` - Submitted
+        * `stock_reserved` - Stock Reserved
+        * `internal_issue` - Internal Issue
+        * `department_review` - Department Review
+        * `head_review` - Head Review
+        * `procurement_review` - Procurement Review
+        * `final_approval` - Final Approval
+        * `procurement_authorized` - Procurement Authorized
+        * `tender` - Tender
+        * `po_issued` - Po Issued
+        * `partially_received` - Partially Received
+        * `received` - Received
+        * `rejected` - Rejected
+        * `withdrawn` - Withdrawn
+        * `cancelled` - Cancelled
     InterviewRound:
       type: object
       properties:
@@ -2490,6 +3782,58 @@ components:
         * `tech` - Technical interview
         * `hr` - HR interview
         * `other` - Other
+    Inventory:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        item_code:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 300
+        location_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        department_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        quantity_on_hand:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,11}(?:\.\d{0,3})?$
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - item_code
+      - location_id
+      - updated_at
+    InvoiceCreate:
+      type: object
+      properties:
+        purchase_order:
+          type: integer
+        vendor_invoice_number:
+          type: string
+          maxLength: 80
+        invoice_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+      required:
+      - invoice_amount
+      - purchase_order
+      - vendor_invoice_number
     JobPosting:
       type: object
       properties:
@@ -3062,6 +4406,22 @@ components:
           type: string
           format: date-time
           readOnly: true
+    PaymentResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        processed_at:
+          type: string
+          format: date-time
+      required:
+      - amount
+      - id
+      - processed_at
     PlacementRecordDetail:
       type: object
       description: A student's own record, with what rules 22 and 24 still want from
@@ -3122,6 +4482,64 @@ components:
       - offer_letter_submitted
       - offer_letter_submitted_at
       - source
+<<<<<<< Updated upstream
+=======
+    PlacementRecordDetailSourceEnum:
+      enum:
+      - campus
+      - off_campus
+      type: string
+      description: |-
+        * `campus` - Through the Placement Cell
+        * `off_campus` - Off campus (rules 5 and 24)
+    PolicyRead:
+      type: object
+      properties:
+        key:
+          type: string
+        value: {}
+        description:
+          type: string
+      required:
+      - description
+      - key
+      - value
+    PolicyWrite:
+      type: object
+      properties:
+        leave_year:
+          type: integer
+          maximum: 2100
+          minimum: 2000
+        label:
+          type: string
+          maxLength: 60
+        entitlements:
+          type: object
+          additionalProperties:
+            type: string
+        continuous_counting:
+          type: array
+          items:
+            type: string
+        half_day_categories:
+          type: array
+          items:
+            type: string
+        year_end_month:
+          type: integer
+          maximum: 12
+          minimum: 1
+        year_end_day:
+          type: integer
+          maximum: 31
+          minimum: 1
+        scl_admissibility_note:
+          type: string
+          maxLength: 300
+      required:
+      - leave_year
+>>>>>>> Stashed changes
     ProfileDocument:
       type: object
       description: |-
@@ -3180,6 +4598,48 @@ components:
         * `certificate` - Certificate
         * `offer_letter` - Offer letter
         * `other` - Other
+    PurchaseOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        indent:
+          type: integer
+        vendor:
+          type: integer
+        po_number:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        total_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        planned_delivery_at:
+          type: string
+          format: date-time
+          nullable: true
+        actual_delivery_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        issued_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - actual_delivery_at
+      - id
+      - indent
+      - issued_at
+      - po_number
+      - status
+      - total_amount
+      - vendor
     Recommendation:
       type: object
       description: |-
@@ -3445,6 +4905,42 @@ components:
       - message
       - reason
       - route
+    ReportEnum:
+      enum:
+      - operations
+      - stock
+      - procurement
+      - financial
+      type: string
+      description: |-
+        * `operations` - operations
+        * `stock` - stock
+        * `procurement` - procurement
+        * `financial` - financial
+    ReportSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        report:
+          $ref: '#/components/schemas/ReportEnum'
+        filters: {}
+        interval_seconds:
+          type: integer
+          minimum: 1
+        next_run_at:
+          type: string
+          format: date-time
+        active:
+          type: boolean
+          readOnly: true
+      required:
+      - active
+      - id
+      - interval_seconds
+      - next_run_at
+      - report
     Resume:
       type: object
       description: 'PC-UC-002: the profile rendered as a structured resume.'
@@ -3779,6 +5275,120 @@ components:
           type: integer
       required:
       - document_id
+<<<<<<< Updated upstream
+=======
+    SubstituteAssignment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        request_id:
+          type: integer
+          readOnly: true
+        reference:
+          type: string
+          readOnly: true
+        category:
+          type: string
+          readOnly: true
+        period_from:
+          type: string
+          format: date
+          readOnly: true
+        period_to:
+          type: string
+          format: date
+          readOnly: true
+        applicant_user_id:
+          type: integer
+          readOnly: true
+        nominee_user_id:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        status:
+          $ref: '#/components/schemas/SubstituteAssignmentStatusEnum'
+        status_label:
+          type: string
+          readOnly: true
+        responded_at:
+          type: string
+          format: date-time
+          nullable: true
+        response_note:
+          type: string
+          maxLength: 300
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - applicant_user_id
+      - category
+      - created_at
+      - id
+      - nominee_user_id
+      - period_from
+      - period_to
+      - reference
+      - request_id
+      - status_label
+    SubstituteAssignmentStatusEnum:
+      enum:
+      - nominated
+      - accepted
+      - declined
+      - superseded
+      type: string
+      description: |-
+        * `nominated` - Nominated
+        * `accepted` - Accepted
+        * `declined` - Declined
+        * `superseded` - Superseded
+    SubstituteRespond:
+      type: object
+      properties:
+        accept:
+          type: boolean
+        note:
+          type: string
+          maxLength: 300
+      required:
+      - accept
+    Tender:
+      type: object
+      properties:
+        id:
+          type: integer
+        indent:
+          type: integer
+        tender_number:
+          type: string
+        status:
+          type: string
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+        closes_at:
+          type: string
+          format: date-time
+          nullable: true
+        criteria: {}
+        selected_bid:
+          type: integer
+          nullable: true
+      required:
+      - closes_at
+      - criteria
+      - id
+      - indent
+      - published_at
+      - selected_bid
+      - status
+      - tender_number
+>>>>>>> Stashed changes
     TopicEnum:
       enum:
       - drive
@@ -3795,6 +5405,28 @@ components:
         * `workshop` - Workshop
         * `internship` - Internship programme
         * `general` - General
+    TransferRead:
+      type: object
+      properties:
+        id:
+          type: integer
+        source_department_id:
+          type: integer
+        destination_department_id:
+          type: integer
+        status:
+          type: string
+        lines:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+      required:
+      - destination_department_id
+      - id
+      - lines
+      - source_department_id
+      - status
     Transition:
       type: object
       properties:
@@ -3895,6 +5527,69 @@ components:
             $ref: '#/components/schemas/UserRef'
       required:
       - results
+<<<<<<< Updated upstream
+=======
+    ValidateLeave:
+      type: object
+      properties:
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        period_from:
+          type: string
+          format: date
+        period_to:
+          type: string
+          format: date
+        half:
+          default: ''
+          oneOf:
+          - $ref: '#/components/schemas/HalfEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+      required:
+      - category
+      - period_from
+      - period_to
+    Vendor:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        contact_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        gst_number:
+          type: string
+          maxLength: 20
+        bank_details: {}
+        compliance_documents: {}
+        verified:
+          type: boolean
+          readOnly: true
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+      - verified
+>>>>>>> Stashed changes
     WaiveIncident:
       type: object
       properties:

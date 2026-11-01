@@ -50,3 +50,23 @@ For the intended taxonomy of modules not yet built, see
 | `placement_cell.registration.self` | Register yourself for a placement season | `student` |
 | `placement_cell.record.manage` | Record off-campus placements and chase offer letters | `placement_officer` |
 | `placement_cell.academic_directory.view` | Browse every student's declared CPI | `Dean Academic`, `acadadmin`, `placement_chairman`, `placement_coordinator`, `placement_officer` |
+
+## `psm`
+
+| Code | What it allows | Held by |
+|---|---|---|
+| `psm.indent.view_self` | View own purchase indents | `employee` |
+| `psm.indent.view` | View purchase indents within role scope | `accounts_admin`, `auditor`, `department_admin`, `department_head`, `director`, `procurement_admin`, `procurement_committee`, `registrar` |
+| `psm.indent.create` | Create and submit purchase indents | `employee` |
+| `psm.indent.review` | Review and approve purchase indents | `department_admin`, `department_head`, `director`, `procurement_admin`, `registrar` |
+| `psm.indent.withdraw` | Withdraw or cancel eligible indents | `employee` |
+| `psm.stock.view` | View stock and reservations | `auditor`, `department_admin`, `department_head`, `procurement_admin` |
+| `psm.stock.manage` | Manage stock, issues and transfers | `department_admin`, `procurement_admin` |
+| `psm.vendor.view` | View vendor records | `accounts_admin`, `auditor`, `procurement_admin` |
+| `psm.vendor.manage` | Onboard and maintain vendors | `procurement_admin` |
+| `psm.procurement.manage` | Manage tenders and purchase orders | `procurement_admin` |
+| `psm.tender.evaluate` | Evaluate tender bids and approve vendor selection | `procurement_committee` |
+| `psm.receipt.manage` | Inspect deliveries and record receipts | `department_admin`, `procurement_admin` |
+| `psm.invoice.manage` | Verify invoices and process payments | `accounts_admin` |
+| `psm.report.view` | View authorized procurement and stores reports | `accounts_admin`, `auditor`, `department_admin`, `department_head`, `director`, `procurement_admin`, `procurement_committee`, `registrar` |
+| `psm.audit.view` | View PSM audit records | `auditor` |

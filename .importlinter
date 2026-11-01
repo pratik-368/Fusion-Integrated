@@ -14,6 +14,7 @@ type = forbidden
 source_modules =
     modules.placement
     modules.leave
+    modules.psm
     modules.directory
     modules.accesscontrol
 forbidden_modules =
@@ -27,6 +28,11 @@ forbidden_modules =
     modules.leave.selectors
     modules.leave.api
     modules.leave.domain
+    modules.psm.models
+    modules.psm.services
+    modules.psm.selectors
+    modules.psm.api
+    modules.psm.domain
     modules.directory.models
     modules.directory.services
     modules.directory.api
@@ -44,6 +50,7 @@ type = forbidden
 source_modules =
     modules.placement.domain
     modules.leave.domain
+    modules.psm.domain
 forbidden_modules =
     django
     rest_framework
@@ -82,3 +89,13 @@ layers =
     modules.leave.selectors
     modules.leave.models
     modules.leave.domain
+
+[importlinter:contract:psm-layers]
+name = Layering inside psm
+type = layers
+layers =
+    modules.psm.api
+    modules.psm.services
+    modules.psm.selectors
+    modules.psm.models
+    modules.psm.domain

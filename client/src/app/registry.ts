@@ -17,4 +17,17 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     basePath: "/placement",
     load: () => import("../modules/placement/routes"),
   },
+<<<<<<< Updated upstream
+=======
+  leave: {
+    code: "leave",
+    basePath: "/leave",
+    load: () => import("../modules/leave/routes"),
+  },
+  psm: {
+    code: "psm",
+    basePath: "/psm",
+    load: () => import("../modules/psm/routes"),
+  },
+>>>>>>> Stashed changes
 };

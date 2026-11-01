@@ -372,6 +372,143 @@
         "placement_cell.application.auto_withdraw",
         "placement_cell.offer.expire"
       ]
+    },
+    "psm": {
+      "grants": {
+        "accounts_admin": [
+          "psm.indent.view",
+          "psm.invoice.manage",
+          "psm.report.view",
+          "psm.vendor.view"
+        ],
+        "auditor": [
+          "psm.audit.view",
+          "psm.indent.view",
+          "psm.report.view",
+          "psm.stock.view",
+          "psm.vendor.view"
+        ],
+        "department_admin": [
+          "psm.indent.review",
+          "psm.indent.view",
+          "psm.receipt.manage",
+          "psm.report.view",
+          "psm.stock.manage",
+          "psm.stock.view"
+        ],
+        "department_head": [
+          "psm.indent.review",
+          "psm.indent.view",
+          "psm.report.view",
+          "psm.stock.view"
+        ],
+        "director": [
+          "psm.indent.review",
+          "psm.indent.view",
+          "psm.report.view"
+        ],
+        "employee": [
+          "psm.indent.create",
+          "psm.indent.view_self",
+          "psm.indent.withdraw"
+        ],
+        "procurement_admin": [
+          "psm.indent.review",
+          "psm.indent.view",
+          "psm.procurement.manage",
+          "psm.receipt.manage",
+          "psm.report.view",
+          "psm.stock.manage",
+          "psm.stock.view",
+          "psm.vendor.manage",
+          "psm.vendor.view"
+        ],
+        "procurement_committee": [
+          "psm.indent.view",
+          "psm.report.view",
+          "psm.tender.evaluate"
+        ],
+        "registrar": [
+          "psm.indent.review",
+          "psm.indent.view",
+          "psm.report.view"
+        ]
+      },
+      "module_grants": [
+        "accounts_admin",
+        "auditor",
+        "department_admin",
+        "department_head",
+        "director",
+        "employee",
+        "procurement_admin",
+        "procurement_committee",
+        "registrar"
+      ],
+      "permissions": [
+        {
+          "code": "psm.indent.view_self",
+          "label": "View own purchase indents"
+        },
+        {
+          "code": "psm.indent.view",
+          "label": "View purchase indents within role scope"
+        },
+        {
+          "code": "psm.indent.create",
+          "label": "Create and submit purchase indents"
+        },
+        {
+          "code": "psm.indent.review",
+          "label": "Review and approve purchase indents"
+        },
+        {
+          "code": "psm.indent.withdraw",
+          "label": "Withdraw or cancel eligible indents"
+        },
+        {
+          "code": "psm.stock.view",
+          "label": "View stock and reservations"
+        },
+        {
+          "code": "psm.stock.manage",
+          "label": "Manage stock, issues and transfers"
+        },
+        {
+          "code": "psm.vendor.view",
+          "label": "View vendor records"
+        },
+        {
+          "code": "psm.vendor.manage",
+          "label": "Onboard and maintain vendors"
+        },
+        {
+          "code": "psm.procurement.manage",
+          "label": "Manage tenders and purchase orders"
+        },
+        {
+          "code": "psm.tender.evaluate",
+          "label": "Evaluate tender bids and approve vendor selection"
+        },
+        {
+          "code": "psm.receipt.manage",
+          "label": "Inspect deliveries and record receipts"
+        },
+        {
+          "code": "psm.invoice.manage",
+          "label": "Verify invoices and process payments"
+        },
+        {
+          "code": "psm.report.view",
+          "label": "View authorized procurement and stores reports"
+        },
+        {
+          "code": "psm.audit.view",
+          "label": "View PSM audit records"
+        }
+      ],
+      "scope_permissions": [],
+      "system_permissions": []
     }
   },
   "version": 1
